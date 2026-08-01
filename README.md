@@ -7,7 +7,7 @@
 
 Tiny zero-dependency async concurrency limiter.
 
-Limit how many promises run at once — rate-limited fetches, controlled parallelism, gentle backpressure.
+Cap how many promises run at once. Same primitive for everyday JS/TS work (fetches, jobs, backpressure) and for AI agent runtimes (tool calls, subagents, provider fan-out).
 
 ```ts
 import asyncq from "@justinwilliams-io/asyncq";
@@ -43,7 +43,14 @@ yarn add @justinwilliams-io/asyncq
 | Inspect counts | `active` / `pending` | via separate package |
 | Clear / idle / abort | built in | partial / extra packages |
 
-Same idea as the excellent [`p-limit`](https://github.com/sindresorhus/p-limit), stripped to the essentials — plus clear, dynamic concurrency, idle wait, and abort.
+Same idea as the excellent [`p-limit`](https://github.com/sindresorhus/p-limit), stripped to the essentials, plus clear, dynamic concurrency, idle wait, and abort.
+
+### When to use which
+
+- **asyncq** if you want zero dependencies, built-in `active` / `pending`, `clear()`, `onIdle()`, mutable `concurrency`, and pending-job `AbortSignal` support in one small API.
+- **p-limit** if you already depend on the sindresorhus stack, or you only need a minimal limiter and are fine pulling its dependency tree.
+
+Neither replaces a rate limiter (requests per minute, token buckets). Use a concurrency limiter for "how many at once"; pair it with RPM/backoff logic when the API requires it.
 
 ## Usage
 
@@ -88,8 +95,8 @@ limit(() => doWork());
 limit(() => doWork());
 limit(() => doWork());
 
-limit.active;  // 3 — currently running
-limit.pending; // 1 — waiting in queue
+limit.active;  // 3, currently running
+limit.pending; // 1, waiting in queue
 ```
 
 ### Clear pending work
@@ -100,10 +107,10 @@ const limit = asyncq(2);
 // start a batch…
 const jobs = ids.map((id) => limit(() => fetchItem(id)));
 
-// abort the rest of the batch (running jobs keep going)
+// drop the rest of the batch (running jobs keep going)
 limit.clear(); // pending promises reject with QueueClearedError
 
-// or drop pending without settling (promises hang — use with care)
+// or drop pending without settling (promises hang; use with care)
 limit.clear(false);
 ```
 
@@ -142,11 +149,120 @@ const job = limit(() => fetch(url), { signal: controller.signal });
 // if still queued, rejects with AbortError and never runs
 controller.abort();
 
-// once a job has started, abort does not reject it —
+// once a job has started, abort does not reject it.
 // pass the same signal into fetch/work if you need in-flight cancel
 ```
 
 Errors from individual jobs reject only that promise. The queue keeps draining.
+
+## AI agents
+
+Agent loops love unbounded `Promise.all`: too many tool calls, subagents, or model requests at once burns rate limits and makes "stop" hard. asyncq is a plain concurrency limiter. It is not an agent framework. Use it at the edges where fan-out happens.
+
+| Agent need | asyncq |
+|---|---|
+| Cap parallel tool calls | `asyncq(n)` |
+| Wait until the turn's work finishes | `onIdle()` |
+| User hit stop / plan changed | `clear()` and/or `AbortSignal` on pending jobs |
+| Ease up after 429s, open up when healthy | `concurrency = …` |
+| See load | `active` / `pending` |
+
+### Bound parallel tool calls
+
+```ts
+import asyncq from "@justinwilliams-io/asyncq";
+
+// e.g. at most 4 tools in flight for this turn
+const tools = asyncq(4);
+const turn = new AbortController();
+
+const results = await Promise.all(
+  calls.map((call) =>
+    tools(() => runTool(call), { signal: turn.signal }),
+  ),
+);
+```
+
+Pass `turn.signal` into the tool implementation as well if in-flight work should cancel, not only queued work.
+
+### Separate pools for tools, model calls, and browser
+
+One global limit mixes different bottlenecks. Prefer small named limiters:
+
+```ts
+import asyncq from "@justinwilliams-io/asyncq";
+
+const tools = asyncq(4);
+const llm = asyncq(2);
+const browser = asyncq(1); // serial UI / computer-use steps
+
+await Promise.all([
+  tools(() => readFile(path)),
+  tools(() => search(query)),
+  llm(() => complete(messages)),
+  browser(() => click(selector)),
+]);
+
+await Promise.all([tools.onIdle(), llm.onIdle(), browser.onIdle()]);
+```
+
+### Subagents
+
+```ts
+import asyncq from "@justinwilliams-io/asyncq";
+
+// hard cap so one workflow cannot spawn dozens of children
+const agents = asyncq(3);
+
+await Promise.all(
+  tasks.map((task) => agents(() => runSubagent(task))),
+);
+
+await agents.onIdle();
+```
+
+### Stop / tear down a turn
+
+```ts
+import asyncq, { AbortError, QueueClearedError } from "@justinwilliams-io/asyncq";
+
+const tools = asyncq(4);
+const turn = new AbortController();
+
+const pending = calls.map((call) =>
+  tools(() => runTool(call), { signal: turn.signal }).catch((err) => {
+    if (err instanceof AbortError || err instanceof QueueClearedError) {
+      return null; // expected on cancel
+    }
+    throw err;
+  }),
+);
+
+// user hit stop:
+turn.abort();   // rejects jobs still waiting in the queue
+tools.clear();  // same idea for anything enqueued without a signal
+
+await tools.onIdle(); // in-flight tools finish unless they honor the signal
+```
+
+### Soften concurrency on provider pressure
+
+```ts
+const llm = asyncq(4);
+
+async function complete(req: Request) {
+  return llm(async () => {
+    const res = await callModel(req);
+    if (res.status === 429) {
+      llm.concurrency = Math.max(1, llm.concurrency - 1);
+      // retry / backoff at the call site
+    }
+    return res;
+  });
+}
+```
+
+Concurrency caps "how many at once." It does not replace retry-after, token buckets, or provider-specific RPM helpers.
 
 ## API
 
