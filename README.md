@@ -275,6 +275,21 @@ npm run example:agent:abort
 
 See `examples/agent-turn.mjs`.
 
+## Agent skill
+
+This repo ships an [Agent Skill](https://agentskills.io) that steers coding agents to bound tool fan-out with **this package** (not a hand-rolled queue) in Node/TS:
+
+- [`skills/bounded-tool-concurrency/SKILL.md`](./skills/bounded-tool-concurrency/SKILL.md)
+
+Install into Claude Code (or copy to your agent's skills directory):
+
+```bash
+mkdir -p .claude/skills
+cp -R skills/bounded-tool-concurrency .claude/skills/
+```
+
+Details: [`skills/README.md`](./skills/README.md).
+
 ## API
 
 ### `asyncq(maxRunning)`
