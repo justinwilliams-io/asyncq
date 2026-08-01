@@ -1,16 +1,16 @@
 # asyncq
 
-[![npm version](https://img.shields.io/npm/v/asyncq.svg)](https://www.npmjs.com/package/asyncq)
+[![npm version](https://img.shields.io/npm/v/@justinwilliams-io/asyncq.svg)](https://www.npmjs.com/package/@justinwilliams-io/asyncq)
 [![CI](https://github.com/justinwilliams-io/asyncq/actions/workflows/ci.yml/badge.svg)](https://github.com/justinwilliams-io/asyncq/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/asyncq.svg)](./LICENSE)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/asyncq)](https://bundlephobia.com/package/asyncq)
+[![license](https://img.shields.io/npm/l/@justinwilliams-io/asyncq.svg)](./LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@justinwilliams-io/asyncq)](https://bundlephobia.com/package/@justinwilliams-io/asyncq)
 
 Tiny zero-dependency async concurrency limiter.
 
 Limit how many promises run at once — rate-limited fetches, controlled parallelism, gentle backpressure.
 
 ```ts
-import asyncq from "asyncq";
+import asyncq from "@justinwilliams-io/asyncq";
 
 const limit = asyncq(3);
 
@@ -22,15 +22,15 @@ const results = await Promise.all(
 ## Install
 
 ```bash
-npm install asyncq
+npm install @justinwilliams-io/asyncq
 ```
 
 ```bash
-pnpm add asyncq
+pnpm add @justinwilliams-io/asyncq
 ```
 
 ```bash
-yarn add asyncq
+yarn add @justinwilliams-io/asyncq
 ```
 
 ## Why asyncq?
@@ -49,8 +49,8 @@ Same idea as the excellent [`p-limit`](https://github.com/sindresorhus/p-limit),
 ### Basic
 
 ```ts
-import asyncq from "asyncq";
-// or: import { asyncq } from "asyncq";
+import asyncq from "@justinwilliams-io/asyncq";
+// or: import { asyncq } from "@justinwilliams-io/asyncq";
 
 const limit = asyncq(2);
 
@@ -62,7 +62,7 @@ await limit(async () => {
 ### Rate-limited fetches
 
 ```ts
-import asyncq from "asyncq";
+import asyncq from "@justinwilliams-io/asyncq";
 
 const limit = asyncq(5);
 

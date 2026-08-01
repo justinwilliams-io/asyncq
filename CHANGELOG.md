@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release
+- Initial release as `@justinwilliams-io/asyncq`
 - `asyncq(maxRunning)` concurrency limiter with FIFO queueing
 - Named and default exports
 - `active` and `pending` getters on the returned limiter

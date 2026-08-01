@@ -1,9 +1,9 @@
 {
-  "name": "asyncq",
+  "name": "@justinwilliams-io/asyncq",
   "version": "0.1.0",
   "description": "Tiny zero-dependency async concurrency limiter",
   "license": "MIT",
-  "author": "justinwilliams.dev <justinpwilliams@duck.com>",
+  "author": "justinwilliams.dev <justin@justinwilliams.dev>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/justinwilliams-io/asyncq.git"
@@ -45,6 +45,9 @@
     "node": ">=18"
   },
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
