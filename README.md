@@ -264,6 +264,17 @@ async function complete(req: Request) {
 
 Concurrency caps "how many at once." It does not replace retry-after, token buckets, or provider-specific RPM helpers.
 
+### Try it without an LLM
+
+Fake tool/llm/browser pools, optional mid-turn abort:
+
+```bash
+npm run example:agent
+npm run example:agent:abort
+```
+
+See `examples/agent-turn.mjs`.
+
 ## API
 
 ### `asyncq(maxRunning)`
